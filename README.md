@@ -7,6 +7,13 @@ A little application that predicts the digits written by the user.
 3. Press space to clear the canvas.
 4. Repeat and experiment :)
 
+## Requirements
+You need the following libraries:
+1. numpy
+2. scipy
+3. matplotlib
+4. pygame
+
 ## About the project
 This is my first little project on machine learning and neural networks. The basic network was written from scratch without the use of libraries like TensorFlow.
 I programmed it with the help of the following book: 'Make Your Own Neural Network' by Tariq Rashid.
