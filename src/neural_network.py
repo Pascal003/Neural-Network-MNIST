@@ -21,20 +21,21 @@ class Network:
         self.weights_input_hidden = np.random.normal(0, 1 / math.sqrt(Network.INPUT_NODES), size=(self.HIDDEN_NODES, Network.INPUT_NODES))
         self.weights_hidden_output = np.random.normal(0, 1 / math.sqrt(self.HIDDEN_NODES), size=(Network.OUTPUT_NODES, self.HIDDEN_NODES))
                     
-    def train_one(self, image, digit):
+    def gradient_descent(self, image, digit):
         input_to_hidden_layer = np.dot(self.weights_input_hidden, image)
         output_of_hidden_layer = expit(input_to_hidden_layer)
         input_to_output_layer = np.dot(self.weights_hidden_output, output_of_hidden_layer)
         output_of_output_layer = expit(input_to_output_layer)
         should_values = np.zeros(10) + 0.01
         should_values[digit] = 0.99
-        error_output = should_values - output_of_output_layer
-        #error_hidden = np.dot(np.transpose(self.weights_hidden_output), error_output) # This is easier and works as well.
-        error_hidden = np.dot(np.transpose(self.weights_hidden_output) / np.sum(np.abs(self.weights_hidden_output), axis=1), error_output) * (self.HIDDEN_NODES / 10)
-        delta_w_output = np.outer((should_values - output_of_output_layer) * output_of_output_layer * (1 - output_of_output_layer), output_of_hidden_layer)
-        delta_w_hidden = np.outer(error_hidden * output_of_hidden_layer * (1 - output_of_hidden_layer), image)
-        self.weights_input_hidden += self.learning_rate  * delta_w_hidden
-        self.weights_hidden_output += self.learning_rate * delta_w_output
+        p = (output_of_output_layer - should_values) * output_of_output_layer * (1 - output_of_output_layer)
+        d_cost_d_output_weight = np.outer(p, output_of_hidden_layer)
+        d_cost_d_hidden_node = np.dot(np.transpose(self.weights_hidden_output), p)
+        q = d_cost_d_hidden_node * output_of_hidden_layer * (1 - output_of_hidden_layer)
+        d_cost_d_hidden_weight = np.outer(q, image)
+        weights_input_hidden_step = self.learning_rate  * d_cost_d_hidden_weight
+        weights_hidden_output_step = self.learning_rate * d_cost_d_output_weight
+        return weights_input_hidden_step, weights_hidden_output_step
       
     def test_one(self, input_nodes):
         input_to_hidden_layer = np.dot(self.weights_input_hidden, input_nodes)
@@ -43,17 +44,39 @@ class Network:
         output_of_output_layer = expit(input_to_output_layer)
         return output_of_output_layer
                  
-    def train(self, epochs, train_imgs, train_labels):
+    def train(self, epochs, batch_size, train_imgs, train_labels):
+        # Shuffle training data
+        p = np.random.permutation(len(train_imgs))
+        train_imgs = train_imgs[p]
+        train_labels = train_labels[p]
+        
         for epoch in range(epochs):
-            for i in range(60000):
-                network.train_one(train_imgs[i], train_labels[i])
-                if (i % 1000 == 0):
-                    print(f"Epoch {epoch+1} from {epochs}: {round(i / 600, 2)}%")
-    
+              
+            for batch in range(60000 // batch_size):
+                
+                batch_begin = batch * batch_size
+                batch_end = batch_begin + batch_size
+                weights_input_hidden_avg_step = np.zeros((self.HIDDEN_NODES, Network.INPUT_NODES))
+                weights_hidden_output_avg_step = np.zeros((Network.OUTPUT_NODES, self.HIDDEN_NODES))
+                
+                for i in range(batch_begin, batch_end):
+                    input_hidden_step, hidden_output_step = self.gradient_descent(train_imgs[i], train_labels[i])
+                    weights_input_hidden_avg_step += input_hidden_step
+                    weights_hidden_output_avg_step += hidden_output_step
+                    
+                    if (i % 1000 == 0):
+                        print(f"Epoch {epoch+1} from {epochs}: {round(i / 600, 2)}%")
+                        
+                weights_input_hidden_avg_step /= batch_size
+                weights_hidden_output_avg_step /= batch_size
+                self.weights_input_hidden -= weights_input_hidden_avg_step
+                self.weights_hidden_output -= weights_hidden_output_avg_step
+
+
     def test(self, test_imgs, test_labels):
         right = 0
         wrong = 0
-        wrong_test_cases = []     
+        wrong_test_cases = []
         for i in range(10000):
             output = network.test_one(test_imgs[i])
             prediction = self.get_prediction(output)
@@ -83,10 +106,10 @@ class Network:
         for i, v in enumerate(output):
             print(f"{i}: {round(v, 3)}")
         prediction = self.get_prediction(output)
-        print(f"Prediction {prediction}")
+        print(f"Prediction: {prediction}")
         
     def draw_and_predict(self, test_imgs, index):
-        network.print_prediction(test_imgs[index])
+        self.print_prediction(test_imgs[index])
         draw(test_imgs[index])  
         
     def get_weights(self):
@@ -109,10 +132,12 @@ if __name__ == "__main__":
     train_imgs, train_labels, test_imgs, test_labels = load_dataset()
     
     #network = get_pretrained_network()
-    network = Network(200, 0.1)
-    network.train(2, train_imgs, train_labels)
+    network = Network(200, 0.2)
+    network.train(5, 1, train_imgs, train_labels)
     
     wrong_test_cases = network.test(test_imgs, test_labels)
-
-    #network.draw_and_predict(test_imgs, 4522)
+    
+    # a = 0
+    # print(a)
+    # network.draw_and_predict(test_imgs, a)
       
