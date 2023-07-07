@@ -12,7 +12,8 @@ You need the following libraries:
 1. numpy
 2. scipy
 3. matplotlib
-4. pygame
+4. scikit-image
+5. pygame
 
 ## About the project
 This is my first little project on machine learning and neural networks. The basic network was written from scratch without the use of libraries like TensorFlow.
